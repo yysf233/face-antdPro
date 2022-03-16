@@ -1,4 +1,4 @@
-﻿export default [
+export default [
   {
     path: '/user',
     layout: false,
@@ -19,34 +19,28 @@
     ],
   },
   {
-    path: '/welcome',
-    name: 'welcome',
+    name: '分析页',
     icon: 'smile',
-    component: './Welcome',
+    path: '/welcome',
+    component: './DashboardAnalysis',
   },
   {
     path: '/admin',
     name: 'admin',
     icon: 'crown',
     access: 'canAdmin',
-    component: './Admin',
+    component: './UserManage/index',
     routes: [
       {
         path: '/admin/sub-page',
-        name: 'sub-page',
+        name: '用户管理',
         icon: 'smile',
-        component: './Welcome',
+        component: './UserManage/index',
       },
       {
         component: './404',
       },
     ],
-  },
-  {
-    name: 'list.table-list',
-    icon: 'table',
-    path: '/list',
-    component: './TableList',
   },
   {
     path: '/',
