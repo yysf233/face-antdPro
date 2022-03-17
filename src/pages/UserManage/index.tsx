@@ -1,11 +1,14 @@
+/* eslint-disable @typescript-eslint/no-shadow */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import React, { useRef } from 'react';
 import { PageContainer } from '@ant-design/pro-layout';
-import { Row, Col, Button, Modal, Input, Popconfirm, message } from 'antd';
+import { Row, Col, Button, Modal, Input, Popconfirm, message, Space } from 'antd';
 import ProTable, { ActionType } from '@ant-design/pro-table';
 import { deleteUser, getUsers, regUser, updateUser } from '@/services/user/api';
 import { useState } from 'react';
 import { expect } from '@playwright/test';
+import { deletePicById, getPicsById } from '@/services/pics/api';
 
 const UserManage: React.FC = () => {
   const columns = [
@@ -69,37 +72,90 @@ const UserManage: React.FC = () => {
       ],
     },
   ];
-  const expandedRowRender = (expand, record) => {
-    const data = [];
-    for (let i = 0; i < 3; i += 1) {
-      data.push({
-        key: i,
-        date: '2014-12-24 23:12:00',
-        name: 'This is production name',
-        upgradeNum: 'Upgraded: 56',
-      });
-    }
-    console.log('expand', expand.id);
-
+  const expandedRowRender = (expand: any, record: any) => {
+    console.log('expand', expand);
+    
     return (
       <ProTable
-        columns={[
-          { title: 'Date', dataIndex: 'date', key: 'date' },
-          { title: 'Name', dataIndex: 'name', key: 'name' },
+        request={async () => {
+          const obj = {
+            id: expand.id,
+          };
+          const res = await getPicsById(obj);
+          if (res.code == 200) {
+            const arr: { image: string; }[] = [];
+            res.data.map((item: string) => {
+              const image = {
+                image: 'http://121.196.237.209:8088/' + item,
+                name: item
+              };
+              arr.push(image);
+            });
 
-          { title: 'Upgrade Status', dataIndex: 'upgradeNum', key: 'upgradeNum' },
+            return Promise.resolve({
+              data: arr,
+              // total: res.total,
+              success: true,
+            });
+          } else {
+            message.warn(res.msg);
+            return Promise.resolve({
+              // data: res.data,
+              // total: res.total,
+              success: false,
+            });
+          }
+        }}
+        columns={[
           {
-            title: 'Action',
-            dataIndex: 'operation',
-            key: 'operation',
+            title: '图片',
+            dataIndex: 'image',
+            key: 'image',
+            valueType: 'image',
+          },
+          {
+            title: '图片名称',
+            dataIndex: 'name',
+            key: 'name',
+            // valueType: 'image',
+          },
+          {
+            title: '操作',
+            key: 'option',
+            width: 120,
             valueType: 'option',
-            render: () => [<a key="Pause">Pause</a>, <a key="Stop">Stop</a>],
+            render: (text: any, record: any) => [
+              // eslint-disable-next-line react/jsx-key
+              <Popconfirm
+                title="确定要删除此图片吗？"
+                onConfirm={async () => {
+                  const params = {
+                    name: record?.name,
+                  };
+                  const res = await deletePicById(params);
+                  if (res.data) {
+                    message.success(res.msg);
+                    actionRef?.current.reload();
+                  } else {
+                    message.error('发生未知错误！');
+                  }
+                }}
+                onCancel={() => {}}
+                okText="删除"
+                cancelText="取消"
+              >
+                <Button danger key="delete-user-pic">
+                  删除图片
+                </Button>
+              </Popconfirm>,
+            ],
           },
         ]}
+        actionRef={actionRef}
         headerTitle={false}
         search={false}
         options={false}
-        dataSource={data}
+        // dataSource={data}
         pagination={false}
       />
     );
@@ -114,6 +170,7 @@ const UserManage: React.FC = () => {
   const [editId, setEditId] = useState(0);
 
   const actionRefs = useRef<ActionType>();
+  const actionRef = useRef<ActionType>();
 
   return (
     <PageContainer
