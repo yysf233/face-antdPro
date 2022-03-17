@@ -1,8 +1,8 @@
-# Ant Design Pro
+# 基于 Ant Design Pro 的实验室人脸识别签到系统
 
 This project is initialized with [Ant Design Pro](https://pro.ant.design). Follow is the quick guide for how to use.
 
-## Environment Prepare
+## 环境配置
 
 Install `node_modules`:
 
@@ -10,7 +10,7 @@ Install `node_modules`:
 npm install
 ```
 
-or
+或者
 
 ```bash
 yarn
@@ -22,36 +22,36 @@ Ant Design Pro provides some useful script to help you quick start and build wit
 
 Scripts provided in `package.json`. It's safe to modify or add additional script:
 
-### Start project
+### 启动项目
 
 ```bash
 npm start
 ```
 
-### Build project
+### 构建项目
 
 ```bash
 npm run build
 ```
 
-### Check code style
+### 检查代码风格
 
 ```bash
 npm run lint
 ```
 
-You can also use script to auto fix some lint error:
+你也可以使用此脚本去修复一些格式错误:
 
 ```bash
 npm run lint:fix
 ```
 
-### Test code
+### 测试代码
 
 ```bash
 npm test
 ```
 
-## More
+## 更多
 
 You can view full document on our [official website](https://pro.ant.design). And welcome any feedback in our [github](https://github.com/ant-design/ant-design-pro).
