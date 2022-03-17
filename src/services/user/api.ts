@@ -56,8 +56,8 @@ export async function deleteUser(
   },
   options?: { [key: string]: any },
 ) {
-    console.log('params', params);
-    
+  console.log('params', params);
+
   return request(`/api/face/reg-user?id=${params.id}`, {
     method: 'DELETE',
     // params,
