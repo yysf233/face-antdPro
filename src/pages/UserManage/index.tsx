@@ -3,12 +3,13 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import React, { useRef } from 'react';
 import { PageContainer } from '@ant-design/pro-layout';
-import { Row, Col, Button, Modal, Input, Popconfirm, message, Space } from 'antd';
-import ProTable, { ActionType } from '@ant-design/pro-table';
+import { Row, Col, Button, Modal, Input, Popconfirm, message, Select, Upload, Spin } from 'antd';
+import type { ActionType } from '@ant-design/pro-table';
+import ProTable from '@ant-design/pro-table';
 import { deleteUser, getUsers, regUser, updateUser } from '@/services/user/api';
 import { useState } from 'react';
-import { expect } from '@playwright/test';
 import { deletePicById, getPicsById } from '@/services/pics/api';
+import { PlusOutlined, UploadOutlined } from '@ant-design/icons';
 
 const UserManage: React.FC = () => {
   const columns = [
@@ -31,7 +32,7 @@ const UserManage: React.FC = () => {
     },
     {
       title: '操作',
-      key: 'option',
+      key: 'id',
       width: 120,
       valueType: 'option',
       render: (text: any, record: { id: number; name: string; phoneNumber: string }) => [
@@ -73,8 +74,22 @@ const UserManage: React.FC = () => {
     },
   ];
   const expandedRowRender = (expand: any, record: any) => {
-    console.log('expand', expand);
-    
+    const getBase64 = (file: any) => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = (error) => reject(error);
+      });
+    };
+
+    const uploadButton = (
+      <div>
+        <PlusOutlined />
+        <div style={{ marginTop: 8 }}>Upload</div>
+      </div>
+    );
+
     return (
       <ProTable
         request={async () => {
@@ -83,11 +98,11 @@ const UserManage: React.FC = () => {
           };
           const res = await getPicsById(obj);
           if (res.code == 200) {
-            const arr: { image: string; }[] = [];
+            const arr: { image: string }[] = [];
             res.data.map((item: string) => {
               const image = {
                 image: 'http://121.196.237.209:8088/' + item,
-                name: item
+                name: item,
               };
               arr.push(image);
             });
@@ -100,8 +115,6 @@ const UserManage: React.FC = () => {
           } else {
             message.warn(res.msg);
             return Promise.resolve({
-              // data: res.data,
-              // total: res.total,
               success: false,
             });
           }
@@ -155,27 +168,64 @@ const UserManage: React.FC = () => {
         headerTitle={false}
         search={false}
         options={false}
+        pagination={{
+          pageSize: 10,
+        }}
         // dataSource={data}
-        pagination={false}
+        // pagination={false}
       />
     );
+  };
+  type UserItemType = {
+    name: string;
+    id: number;
+    phoneNumber: string;
   };
 
   const [updateUserModalVisible, setUpdateUserModalVisible] = useState(false);
   const [addUserModalVisible, setAddUserModalVisible] = useState(false);
+  const [updatePictureVisible, setUpdatePictureVisible] = useState(false);
   const [newName, setNewName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [addedName, setAddedNewName] = useState('');
   const [addedphoneNumber, setAddedPhoneNumber] = useState('');
   const [editId, setEditId] = useState(0);
+  const [updateUserList, setUpdateUserList] = useState([]);
+  const [selectedUserId, setSelectedUserId] = useState(-1);
+  const [getUsersLoading, setGetUsersLoading] = useState(false);
+
+  const props = {
+    action: `/api/face/reg-face-file/upload?userId=${selectedUserId}`,
+    onChange({ file, fileList }) {
+      if (file.status == 'done') {
+        message.success('上传成功');
+      }
+    },
+    disabled: selectedUserId < 0 ? true : false,
+  };
 
   const actionRefs = useRef<ActionType>();
   const actionRef = useRef<ActionType>();
+  const { Option } = Select;
 
   return (
     <PageContainer
       header={{
         extra: [
+          <Button
+            type="primary"
+            key="add-user-button"
+            onClick={async () => {
+              setUpdatePictureVisible(true);
+              setGetUsersLoading(true);
+              await getUsers({ page: 1, size: 100 }).then((res) => {
+                setUpdateUserList(res.data);
+                setGetUsersLoading(false);
+              });
+            }}
+          >
+            上传用户照片
+          </Button>,
           <Button
             type="primary"
             key="add-user-button"
@@ -207,8 +257,6 @@ const UserManage: React.FC = () => {
           } else {
             message.warn(res.msg);
             return Promise.resolve({
-              // data: res.data,
-              // total: res.total,
               success: false,
             });
           }
@@ -243,7 +291,7 @@ const UserManage: React.FC = () => {
             message.success(res.msg);
           }
           setUpdateUserModalVisible(false);
-          actionRefs?.current.reload();
+          actionRefs.current?.reload();
           setNewName('');
           setPhoneNumber('');
         }}
@@ -312,7 +360,7 @@ const UserManage: React.FC = () => {
             message.success(res.msg);
           }
           setAddUserModalVisible(false);
-          actionRefs?.current.reload();
+          actionRefs.current?.reload();
           setAddedNewName('');
           setAddedPhoneNumber('');
         }}
@@ -365,6 +413,99 @@ const UserManage: React.FC = () => {
             </Row>
           </span>
         </div>
+      </Modal>
+      {/* 上传照片对话框 */}
+      <Modal
+        title="上传用户人脸照片"
+        visible={updatePictureVisible}
+        footer={[
+          <Button
+            danger
+            key="handleCanleButton"
+            onClick={() => {
+              setUpdatePictureVisible(false);
+              setSelectedUserId(-1);
+              actionRefs.current?.reload();
+            }}
+          >
+            关闭
+          </Button>,
+        ]}
+        onCancel={() => {
+          setUpdatePictureVisible(false);
+          setSelectedUserId(-1);
+          actionRefs.current?.reload();
+        }}
+      >
+        {getUsersLoading ? (
+          <div
+            className="example"
+            style={{
+              margin: '20px 0',
+              marginBottom: '20px',
+              padding: '30px 50px',
+              textAlign: 'center',
+              background: 'rgba(0, 0, 0, 0)',
+              borderRadius: 'rgba(0, 0, 0, 0.05)',
+            }}
+          >
+            <Spin />
+          </div>
+        ) : (
+          <>
+            <div key="phoneNameInput" style={{ margin: '0 0 12px 0' }}>
+              <span style={{ lineHeight: '32px' }}>
+                <Row gutter={8}>
+                  <Col span={4}>
+                    <label>
+                      <span>选择用户</span>
+                    </label>
+                  </Col>
+                  <Col span={18}>
+                    <Select
+                      style={{ width: 300 }}
+                      placeholder="请选择用户"
+                      onChange={(value: number) => {
+                        setSelectedUserId(value);
+                      }}
+                    >
+                      {updateUserList.map((item: UserItemType) => (
+                        <Option key={item.id} value={item.id}>
+                          {item.name}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Col>
+                </Row>
+              </span>
+            </div>
+            <div key="phoneSelect" style={{ margin: '0 0 12px 0' }}>
+              <span style={{ lineHeight: '32px' }}>
+                <Row gutter={8}>
+                  <Col span={4}>
+                    <label>
+                      <span>选择照片</span>
+                    </label>
+                  </Col>
+                  <Col span={18}>
+                    <Upload {...props}>
+                      <Button
+                        onClick={() => {
+                          if (selectedUserId < 0) {
+                            message.error('请选择要上传图片的用户');
+                          }
+                        }}
+                        icon={<UploadOutlined />}
+                      >
+                        上传照片
+                      </Button>
+                    </Upload>
+                  </Col>
+                </Row>
+              </span>
+            </div>
+          </>
+        )}
       </Modal>
     </PageContainer>
   );
