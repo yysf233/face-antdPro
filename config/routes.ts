@@ -38,6 +38,12 @@ export default [
         component: './UserManage/index',
       },
       {
+        path: '/admin/signIn',
+        name: '签到信息',
+        icon: 'smile',
+        component: './SignInManage/index',
+      },
+      {
         component: './404',
       },
     ],
