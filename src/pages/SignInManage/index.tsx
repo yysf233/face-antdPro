@@ -9,7 +9,8 @@ import ProTable from '@ant-design/pro-table';
 import { deleteUser, getUsers, regUser, updateUser } from '@/services/user/api';
 import { useState } from 'react';
 import { deletePicById, getPicsById } from '@/services/pics/api';
-import { PlusOutlined, UploadOutlined } from '@ant-design/icons';
+import { getSignInInfoList, getUserSignInInfo } from '@/services/signIn/api';
+import { UploadOutlined } from '@ant-design/icons';
 
 const UserManage: React.FC = () => {
   const columns = [
@@ -30,66 +31,50 @@ const UserManage: React.FC = () => {
       dataIndex: 'phoneNumber',
       key: 'phoneNumber',
     },
-    {
-      title: '操作',
-      key: 'id',
-      width: 120,
-      valueType: 'option',
-      render: (text: any, record: { id: number; name: string; phoneNumber: string }) => [
-        <Button
-          type="primary"
-          ghost
-          key="link"
-          onClick={() => {
-            setEditId(record.id);
-            setUpdateUserModalVisible(true);
-          }}
-        >
-          更新用户
-        </Button>,
-        // eslint-disable-next-line react/jsx-key
-        <Popconfirm
-          title="确定要删除此用户吗？"
-          onConfirm={async () => {
-            const params = {
-              id: record?.id,
-            };
-            const res = await deleteUser(params);
-            if (res.data) {
-              message.success(res.msg);
-              actionRefs?.current.reload();
-            } else {
-              message.error('发生未知错误！');
-            }
-          }}
-          onCancel={() => {}}
-          okText="删除"
-          cancelText="取消"
-        >
-          <Button type="primary" danger key="link2">
-            删除用户
-          </Button>
-        </Popconfirm>,
-      ],
-    },
+    // {
+    //   title: '操作',
+    //   key: 'id',
+    //   width: 120,
+    //   valueType: 'option',
+    //   render: (text: any, record: { id: number; name: string; phoneNumber: string }) => [
+    //     <Button
+    //       type="primary"
+    //       ghost
+    //       key="link"
+    //       onClick={() => {
+    //         setEditId(record.id);
+    //         setUpdateUserModalVisible(true);
+    //       }}
+    //     >
+    //       更新用户
+    //     </Button>,
+    //     // eslint-disable-next-line react/jsx-key
+    //     <Popconfirm
+    //       title="确定要删除此用户吗？"
+    //       onConfirm={async () => {
+    //         const params = {
+    //           id: record?.id,
+    //         };
+    //         const res = await deleteUser(params);
+    //         if (res.data) {
+    //           message.success(res.msg);
+    //           actionRefs?.current.reload();
+    //         } else {
+    //           message.error('发生未知错误！');
+    //         }
+    //       }}
+    //       onCancel={() => {}}
+    //       okText="删除"
+    //       cancelText="取消"
+    //     >
+    //       <Button type="primary" danger key="link2">
+    //         删除用户
+    //       </Button>
+    //     </Popconfirm>,
+    //   ],
+    // },
   ];
   const expandedRowRender = (expand: any, record: any) => {
-    const getBase64 = (file: any) => {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = (error) => reject(error);
-      });
-    };
-
-    const uploadButton = (
-      <div>
-        <PlusOutlined />
-        <div style={{ marginTop: 8 }}>Upload</div>
-      </div>
-    );
-
     return (
       <ProTable
         request={async () => {
@@ -132,37 +117,37 @@ const UserManage: React.FC = () => {
             key: 'name',
             // valueType: 'image',
           },
-          {
-            title: '操作',
-            key: 'option',
-            width: 120,
-            valueType: 'option',
-            render: (text: any, record: any) => [
-              // eslint-disable-next-line react/jsx-key
-              <Popconfirm
-                title="确定要删除此图片吗？"
-                onConfirm={async () => {
-                  const params = {
-                    name: record?.name,
-                  };
-                  const res = await deletePicById(params);
-                  if (res.data) {
-                    message.success(res.msg);
-                    actionRef?.current.reload();
-                  } else {
-                    message.error('发生未知错误！');
-                  }
-                }}
-                onCancel={() => {}}
-                okText="删除"
-                cancelText="取消"
-              >
-                <Button danger key="delete-user-pic">
-                  删除图片
-                </Button>
-              </Popconfirm>,
-            ],
-          },
+          // {
+          //   title: '操作',
+          //   key: 'option',
+          //   width: 120,
+          //   valueType: 'option',
+          //   render: (text: any, record: any) => [
+          //     // eslint-disable-next-line react/jsx-key
+          //     <Popconfirm
+          //       title="确定要删除此图片吗？"
+          //       onConfirm={async () => {
+          //         const params = {
+          //           name: record?.name,
+          //         };
+          //         const res = await deletePicById(params);
+          //         if (res.data) {
+          //           message.success(res.msg);
+          //           actionRef.current?.reload();
+          //         } else {
+          //           message.error('发生未知错误！');
+          //         }
+          //       }}
+          //       onCancel={() => {}}
+          //       okText="删除"
+          //       cancelText="取消"
+          //     >
+          //       <Button danger key="delete-user-pic">
+          //         删除图片
+          //       </Button>
+          //     </Popconfirm>,
+          //   ],
+          // },
         ]}
         actionRef={actionRef}
         headerTitle={false}
@@ -176,78 +161,22 @@ const UserManage: React.FC = () => {
       />
     );
   };
-  type UserItemType = {
-    name: string;
-    id: number;
-    phoneNumber: string;
-  };
-
-  const [updateUserModalVisible, setUpdateUserModalVisible] = useState(false);
-  const [addUserModalVisible, setAddUserModalVisible] = useState(false);
-  const [updatePictureVisible, setUpdatePictureVisible] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [addedName, setAddedNewName] = useState('');
-  const [addedphoneNumber, setAddedPhoneNumber] = useState('');
-  const [editId, setEditId] = useState(0);
-  const [updateUserList, setUpdateUserList] = useState([]);
-  const [selectedUserId, setSelectedUserId] = useState(-1);
-  const [getUsersLoading, setGetUsersLoading] = useState(false);
-
-  const props = {
-    action: `/api/face/reg-face-file/upload?userId=${selectedUserId}`,
-    onChange({ file, fileList }) {
-      if (file.status == 'done') {
-        message.success('上传成功');
-      }
-    },
-    disabled: selectedUserId < 0 ? true : false,
-  };
 
   const actionRefs = useRef<ActionType>();
   const actionRef = useRef<ActionType>();
-  const { Option } = Select;
 
   return (
-    <PageContainer
-      header={{
-        extra: [
-          <Button
-            type="primary"
-            key="add-user-button"
-            onClick={async () => {
-              setUpdatePictureVisible(true);
-              setGetUsersLoading(true);
-              await getUsers({ page: 1, size: 100 }).then((res) => {
-                setUpdateUserList(res.data);
-                setGetUsersLoading(false);
-              });
-            }}
-          >
-            上传用户照片
-          </Button>,
-          <Button
-            type="primary"
-            key="add-user-button"
-            onClick={() => {
-              setAddUserModalVisible(true);
-            }}
-          >
-            添加用户
-          </Button>,
-        ],
-      }}
-    >
+    <PageContainer>
       <ProTable
         expandable={{ expandedRowRender }}
         columns={columns}
         actionRef={actionRefs}
         request={async (params) => {
-          params.page = params.current;
-          params.size = params.pageSize;
-          params.current = undefined;
-          params.pageSize = undefined;
-          const res = await getUsers(params);
+          const obj: { page: number | undefined; size: number | undefined } = {
+            page: params.current,
+            size: params.pageSize,
+          };
+          const res = await getUsers(obj);
           if (res.code == 200) {
             return Promise.resolve({
               data: res.data,
@@ -276,237 +205,6 @@ const UserManage: React.FC = () => {
         dateFormatter="string"
         headerTitle="用户列表"
       />
-      {/* 更新人员对话框 */}
-      <Modal
-        title="更新人员信息"
-        visible={updateUserModalVisible}
-        onOk={async () => {
-          const params = {
-            id: editId,
-            name: newName,
-            phoneNumber: phoneNumber,
-          };
-          const res = await updateUser(params);
-          if (res.code == 200) {
-            message.success(res.msg);
-          }
-          setUpdateUserModalVisible(false);
-          actionRefs.current?.reload();
-          setNewName('');
-          setPhoneNumber('');
-        }}
-        onCancel={() => {
-          setUpdateUserModalVisible(false);
-          setNewName('');
-          setPhoneNumber('');
-        }}
-      >
-        {/* 姓名 */}
-        <div key="nameInput" style={{ margin: '0 0 12px 0' }}>
-          <span>
-            <Row gutter={8}>
-              <Col span={3}>
-                <label>
-                  <span>姓名</span>
-                </label>
-              </Col>
-              <Col span={18}>
-                <Input
-                  value={newName}
-                  onChange={(e) => {
-                    setNewName(e.target.value);
-                  }}
-                  placeholder="请输入新的姓名"
-                />
-              </Col>
-            </Row>
-          </span>
-        </div>
-        {/* 电话 */}
-        <div key="phoneNameInput" style={{ margin: '0 0 12px 0' }}>
-          <span>
-            <Row gutter={8}>
-              <Col span={3}>
-                <label>
-                  <span>电话</span>
-                </label>
-              </Col>
-              <Col span={18}>
-                <Input
-                  maxLength={11}
-                  value={phoneNumber}
-                  onChange={(e) => {
-                    setPhoneNumber(e.target.value);
-                  }}
-                  placeholder="请输入新的电话号码"
-                />
-              </Col>
-            </Row>
-          </span>
-        </div>
-      </Modal>
-      {/* 添加人员对话框 */}
-      <Modal
-        title="添加人员信息"
-        visible={addUserModalVisible}
-        onOk={async () => {
-          const params = {
-            id: 0,
-            name: addedName,
-            phoneNumber: addedphoneNumber,
-          };
-          const res = await regUser(params);
-          if (res.code == 200) {
-            message.success(res.msg);
-          }
-          setAddUserModalVisible(false);
-          actionRefs.current?.reload();
-          setAddedNewName('');
-          setAddedPhoneNumber('');
-        }}
-        onCancel={() => {
-          setAddUserModalVisible(false);
-          setNewName('');
-          setPhoneNumber('');
-        }}
-      >
-        {/* 姓名 */}
-        <div key="nameInput" style={{ margin: '0 0 12px 0' }}>
-          <span>
-            <Row gutter={8}>
-              <Col span={3}>
-                <label>
-                  <span>姓名</span>
-                </label>
-              </Col>
-              <Col span={18}>
-                <Input
-                  value={addedName}
-                  onChange={(e) => {
-                    setAddedNewName(e.target.value);
-                  }}
-                  placeholder="请输入新的姓名"
-                />
-              </Col>
-            </Row>
-          </span>
-        </div>
-        {/* 电话 */}
-        <div key="phoneNameInput" style={{ margin: '0 0 12px 0' }}>
-          <span>
-            <Row gutter={8}>
-              <Col span={3}>
-                <label>
-                  <span>电话</span>
-                </label>
-              </Col>
-              <Col span={18}>
-                <Input
-                  maxLength={11}
-                  value={addedphoneNumber}
-                  onChange={(e) => {
-                    setAddedPhoneNumber(e.target.value);
-                  }}
-                  placeholder="请输入新的电话号码"
-                />
-              </Col>
-            </Row>
-          </span>
-        </div>
-      </Modal>
-      {/* 上传照片对话框 */}
-      <Modal
-        title="上传用户人脸照片"
-        visible={updatePictureVisible}
-        footer={[
-          <Button
-            danger
-            key="handleCanleButton"
-            onClick={() => {
-              setUpdatePictureVisible(false);
-              setSelectedUserId(-1);
-              actionRefs.current?.reload();
-            }}
-          >
-            关闭
-          </Button>,
-        ]}
-        onCancel={() => {
-          setUpdatePictureVisible(false);
-          setSelectedUserId(-1);
-          actionRefs.current?.reload();
-        }}
-      >
-        {getUsersLoading ? (
-          <div
-            className="example"
-            style={{
-              margin: '20px 0',
-              marginBottom: '20px',
-              padding: '30px 50px',
-              textAlign: 'center',
-              background: 'rgba(0, 0, 0, 0)',
-              borderRadius: 'rgba(0, 0, 0, 0.05)',
-            }}
-          >
-            <Spin />
-          </div>
-        ) : (
-          <>
-            <div key="phoneNameInput" style={{ margin: '0 0 12px 0' }}>
-              <span style={{ lineHeight: '32px' }}>
-                <Row gutter={8}>
-                  <Col span={4}>
-                    <label>
-                      <span>选择用户</span>
-                    </label>
-                  </Col>
-                  <Col span={18}>
-                    <Select
-                      style={{ width: 300 }}
-                      placeholder="请选择用户"
-                      onChange={(value: number) => {
-                        setSelectedUserId(value);
-                      }}
-                    >
-                      {updateUserList.map((item: UserItemType) => (
-                        <Option key={item.id} value={item.id}>
-                          {item.name}
-                        </Option>
-                      ))}
-                    </Select>
-                  </Col>
-                </Row>
-              </span>
-            </div>
-            <div key="phoneSelect" style={{ margin: '0 0 12px 0' }}>
-              <span style={{ lineHeight: '32px' }}>
-                <Row gutter={8}>
-                  <Col span={4}>
-                    <label>
-                      <span>选择照片</span>
-                    </label>
-                  </Col>
-                  <Col span={18}>
-                    <Upload {...props}>
-                      <Button
-                        onClick={() => {
-                          if (selectedUserId < 0) {
-                            message.error('请选择要上传图片的用户');
-                          }
-                        }}
-                        icon={<UploadOutlined />}
-                      >
-                        上传照片
-                      </Button>
-                    </Upload>
-                  </Col>
-                </Row>
-              </span>
-            </div>
-          </>
-        )}
-      </Modal>
     </PageContainer>
   );
 };

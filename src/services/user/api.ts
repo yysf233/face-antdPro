@@ -5,8 +5,8 @@ import { request } from 'umi';
 // 获取人员列表
 export async function getUsers(
   params: {
-    page: number;
-    size: number;
+    page: number | undefined;
+    size: number | undefined;
   },
   options?: { [key: string]: any },
 ) {

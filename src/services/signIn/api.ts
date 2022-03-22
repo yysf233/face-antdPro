@@ -1,30 +1,37 @@
 // @ts-ignore
-/* eslint-disable */
 import { request } from 'umi';
 
-// 根据ID获取图片列表
-export async function getPicsById(
+// 查询签到信息列表
+export async function getSignInInfoList(
   params: {
-    id: number;
+    endTime?: number;
+    stratTime?: number;
+    userId?: number;
+    page: number;
+    size: number;
   },
   options?: { [key: string]: any },
 ) {
-  return request('/api/face/reg-face-file', {
+  return request('/api/face/reg-info', {
     method: 'GET',
     params,
     ...(options || {}),
   });
 }
 
-// 根据图片名删除图片
-export async function deletePicById(
+// 查询用户签到信息
+export async function getUserSignInInfo(
   params: {
-    name: string;
+    startTime: number;
+    endTime: number;
+    granularity: number;
+    userId: number;
   },
   options?: { [key: string]: any },
 ) {
-  return request(`/api/face/reg-face-file?name=${params.name}`, {
-    method: 'DELETE',
+  return request(`/api/face/reg-info/statistics`, {
+    method: 'GET',
+    params,
     ...(options || {}),
   });
 }
