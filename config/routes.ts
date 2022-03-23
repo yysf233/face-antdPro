@@ -29,7 +29,6 @@ export default [
     name: 'admin',
     icon: 'crown',
     access: 'canAdmin',
-    component: './UserManage/index',
     routes: [
       {
         path: '/admin/sub-page',

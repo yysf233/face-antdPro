@@ -3,14 +3,11 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import React, { useRef } from 'react';
 import { PageContainer } from '@ant-design/pro-layout';
-import { Row, Col, Button, Modal, Input, Popconfirm, message, Select, Upload, Spin } from 'antd';
+import { message } from 'antd';
 import type { ActionType } from '@ant-design/pro-table';
 import ProTable from '@ant-design/pro-table';
-import { deleteUser, getUsers, regUser, updateUser } from '@/services/user/api';
-import { useState } from 'react';
-import { deletePicById, getPicsById } from '@/services/pics/api';
-import { getSignInInfoList, getUserSignInInfo } from '@/services/signIn/api';
-import { UploadOutlined } from '@ant-design/icons';
+import { getUsers } from '@/services/user/api';
+import { getPicsById } from '@/services/pics/api';
 
 const UserManage: React.FC = () => {
   const columns = [
