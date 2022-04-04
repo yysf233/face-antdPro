@@ -24,7 +24,7 @@ export async function getUserSignInInfo(
   params: {
     startTime: number;
     endTime: number;
-    granularity: number;
+    granularity: string;
     userId: number;
   },
   options?: { [key: string]: any },

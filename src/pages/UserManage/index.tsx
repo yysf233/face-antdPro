@@ -3,16 +3,39 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import React, { useRef } from 'react';
 import { PageContainer } from '@ant-design/pro-layout';
-import { Row, Col, Button, Modal, Input, Popconfirm, message, Select, Upload, Spin } from 'antd';
-import type { ActionType } from '@ant-design/pro-table';
+import { Row, Col, Button, Modal, Input, Popconfirm, message, Select, Upload } from 'antd';
+import type { ActionType, ProColumns } from '@ant-design/pro-table';
 import ProTable from '@ant-design/pro-table';
 import { deleteUser, getUsers, regUser, updateUser } from '@/services/user/api';
 import { useState } from 'react';
 import { deletePicById, getPicsById } from '@/services/pics/api';
 import { PlusOutlined, UploadOutlined } from '@ant-design/icons';
 
+let timeout: any;
+
+function fetch(value: any, callback: any) {
+  if (timeout) {
+    clearTimeout(timeout);
+    timeout = null;
+  }
+  async function fake() {
+    const obj = {
+      page: 1,
+      size: 20,
+      name: value,
+    };
+    await getUsers(obj).then((res: any) => callback(res.data));
+  }
+  timeout = setTimeout(fake, 300);
+}
+type UserListItem = {
+  id: number;
+  name: string;
+  phoneNumber: string;
+};
+
 const UserManage: React.FC = () => {
-  const columns = [
+  const columns: ProColumns<UserListItem>[] = [
     {
       title: '序号',
       width: 50,
@@ -73,113 +96,100 @@ const UserManage: React.FC = () => {
       ],
     },
   ];
-  const expandedRowRender = (expand: any, record: any) => {
-    const getBase64 = (file: any) => {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = (error) => reject(error);
+  const expandedRowRender = (expand: any, record: any) => (
+    <ProTable
+      request={async () => {
+        const obj = {
+          id: expand.id,
+        };
+        const res = await getPicsById(obj);
+        if (res.code == 200) {
+          const arr: { image: string }[] = [];
+          res.data.map((item: string) => {
+            const image = {
+              image: 'http://121.196.237.209:8088/' + item,
+              name: item,
+            };
+            arr.push(image);
+          });
+
+          return Promise.resolve({
+            data: arr,
+            // total: res.total,
+            success: true,
+          });
+        } else {
+          message.warn(res.msg);
+          return Promise.resolve({
+            success: false,
+          });
+        }
+      }}
+      columns={[
+        {
+          title: '图片',
+          dataIndex: 'image',
+          key: 'image',
+          valueType: 'image',
+        },
+        {
+          title: '图片名称',
+          dataIndex: 'name',
+          key: 'name',
+        },
+        {
+          title: '操作',
+          key: 'option',
+          width: 120,
+          valueType: 'option',
+          render: (text: any, record: any) => [
+            // eslint-disable-next-line react/jsx-key
+            <Popconfirm
+              title="确定要删除此图片吗？"
+              onConfirm={async () => {
+                const params = {
+                  name: record?.name,
+                };
+                const res = await deletePicById(params);
+                if (res.data) {
+                  message.success(res.msg);
+                  actionRef.current?.reload();
+                } else {
+                  message.error('发生未知错误！');
+                }
+              }}
+              onCancel={() => {}}
+              okText="删除"
+              cancelText="取消"
+            >
+              <Button danger key="delete-user-pic">
+                删除图片
+              </Button>
+            </Popconfirm>,
+          ],
+        },
+      ]}
+      actionRef={actionRef}
+      headerTitle={false}
+      search={false}
+      options={false}
+      pagination={{
+        pageSize: 10,
+      }}
+      // dataSource={data}
+      // pagination={false}
+    />
+  );
+  const handleSearch = (value: any) => {
+    if (value) {
+      fetch(value, (data: any) => {
+        console.log('data', data);
+        setData(data);
       });
-    };
-
-    const uploadButton = (
-      <div>
-        <PlusOutlined />
-        <div style={{ marginTop: 8 }}>Upload</div>
-      </div>
-    );
-
-    return (
-      <ProTable
-        request={async () => {
-          const obj = {
-            id: expand.id,
-          };
-          const res = await getPicsById(obj);
-          if (res.code == 200) {
-            const arr: { image: string }[] = [];
-            res.data.map((item: string) => {
-              const image = {
-                image: 'http://121.196.237.209:8088/' + item,
-                name: item,
-              };
-              arr.push(image);
-            });
-
-            return Promise.resolve({
-              data: arr,
-              // total: res.total,
-              success: true,
-            });
-          } else {
-            message.warn(res.msg);
-            return Promise.resolve({
-              success: false,
-            });
-          }
-        }}
-        columns={[
-          {
-            title: '图片',
-            dataIndex: 'image',
-            key: 'image',
-            valueType: 'image',
-          },
-          {
-            title: '图片名称',
-            dataIndex: 'name',
-            key: 'name',
-            // valueType: 'image',
-          },
-          {
-            title: '操作',
-            key: 'option',
-            width: 120,
-            valueType: 'option',
-            render: (text: any, record: any) => [
-              // eslint-disable-next-line react/jsx-key
-              <Popconfirm
-                title="确定要删除此图片吗？"
-                onConfirm={async () => {
-                  const params = {
-                    name: record?.name,
-                  };
-                  const res = await deletePicById(params);
-                  if (res.data) {
-                    message.success(res.msg);
-                    actionRef?.current.reload();
-                  } else {
-                    message.error('发生未知错误！');
-                  }
-                }}
-                onCancel={() => {}}
-                okText="删除"
-                cancelText="取消"
-              >
-                <Button danger key="delete-user-pic">
-                  删除图片
-                </Button>
-              </Popconfirm>,
-            ],
-          },
-        ]}
-        actionRef={actionRef}
-        headerTitle={false}
-        search={false}
-        options={false}
-        pagination={{
-          pageSize: 10,
-        }}
-        // dataSource={data}
-        // pagination={false}
-      />
-    );
-  };
-  type UserItemType = {
-    name: string;
-    id: number;
-    phoneNumber: string;
+    } else {
+      console.log('data', data);
+      setData(data);
+    }
   };
 
   const [updateUserModalVisible, setUpdateUserModalVisible] = useState(false);
@@ -190,13 +200,12 @@ const UserManage: React.FC = () => {
   const [addedName, setAddedNewName] = useState('');
   const [addedphoneNumber, setAddedPhoneNumber] = useState('');
   const [editId, setEditId] = useState(0);
-  const [updateUserList, setUpdateUserList] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState(-1);
-  const [getUsersLoading, setGetUsersLoading] = useState(false);
+  const [data, setData] = useState([]);
 
   const props = {
     action: `/api/face/reg-face-file/upload?userId=${selectedUserId}`,
-    onChange({ file, fileList }) {
+    onChange({ file, fileList }: any) {
       if (file.status == 'done') {
         message.success('上传成功');
       }
@@ -207,7 +216,11 @@ const UserManage: React.FC = () => {
   const actionRefs = useRef<ActionType>();
   const actionRef = useRef<ActionType>();
   const { Option } = Select;
-
+  const options = data.map((d: any) => (
+    <Option key={d.id}>
+      {d.name}-{d.phoneNumber}
+    </Option>
+  ));
   return (
     <PageContainer
       header={{
@@ -215,13 +228,8 @@ const UserManage: React.FC = () => {
           <Button
             type="primary"
             key="add-user-button"
-            onClick={async () => {
+            onClick={() => {
               setUpdatePictureVisible(true);
-              setGetUsersLoading(true);
-              await getUsers({ page: 1, size: 100 }).then((res) => {
-                setUpdateUserList(res.data);
-                setGetUsersLoading(false);
-              });
             }}
           >
             上传用户照片
@@ -242,7 +250,7 @@ const UserManage: React.FC = () => {
         expandable={{ expandedRowRender }}
         columns={columns}
         actionRef={actionRefs}
-        request={async (params) => {
+        request={async (params: any) => {
           params.page = params.current;
           params.size = params.pageSize;
           params.current = undefined;
@@ -261,9 +269,7 @@ const UserManage: React.FC = () => {
             });
           }
         }}
-        editable={{
-          type: 'multiple',
-        }}
+        toolBarRender={false}
         search={false}
         columnsState={{
           persistenceKey: 'pro-table-singe-demos',
@@ -274,7 +280,6 @@ const UserManage: React.FC = () => {
           pageSize: 10,
         }}
         dateFormatter="string"
-        headerTitle="用户列表"
       />
       {/* 更新人员对话框 */}
       <Modal
@@ -437,75 +442,63 @@ const UserManage: React.FC = () => {
           actionRefs.current?.reload();
         }}
       >
-        {getUsersLoading ? (
-          <div
-            className="example"
-            style={{
-              margin: '20px 0',
-              marginBottom: '20px',
-              padding: '30px 50px',
-              textAlign: 'center',
-              background: 'rgba(0, 0, 0, 0)',
-              borderRadius: 'rgba(0, 0, 0, 0.05)',
-            }}
-          >
-            <Spin />
+        <>
+          <div key="phoneNameInput" style={{ margin: '0 0 12px 0' }}>
+            <span style={{ lineHeight: '32px' }}>
+              <Row gutter={8}>
+                <Col span={4}>
+                  <label>
+                    <span>选择用户</span>
+                  </label>
+                </Col>
+                <Col span={18}>
+                  <Select
+                    showSearch
+                    style={{ width: 300 }}
+                    placeholder="请选择用户"
+                    onChange={(value: number) => {
+                      setSelectedUserId(value);
+                    }}
+                    defaultActiveFirstOption={false}
+                    showArrow={false}
+                    filterOption={false}
+                    onSearch={(value) => {
+                      console.log('changeValue', value);
+                      handleSearch(value);
+                    }}
+                  >
+                    {options}
+                  </Select>
+                </Col>
+              </Row>
+            </span>
           </div>
-        ) : (
-          <>
-            <div key="phoneNameInput" style={{ margin: '0 0 12px 0' }}>
-              <span style={{ lineHeight: '32px' }}>
-                <Row gutter={8}>
-                  <Col span={4}>
-                    <label>
-                      <span>选择用户</span>
-                    </label>
-                  </Col>
-                  <Col span={18}>
-                    <Select
-                      style={{ width: 300 }}
-                      placeholder="请选择用户"
-                      onChange={(value: number) => {
-                        setSelectedUserId(value);
+          <div key="phoneSelect" style={{ margin: '0 0 12px 0' }}>
+            <span style={{ lineHeight: '32px' }}>
+              <Row gutter={8}>
+                <Col span={4}>
+                  <label>
+                    <span>选择照片</span>
+                  </label>
+                </Col>
+                <Col span={18}>
+                  <Upload {...props}>
+                    <Button
+                      onClick={() => {
+                        if (selectedUserId < 0) {
+                          message.error('请选择要上传图片的用户');
+                        }
                       }}
+                      icon={<UploadOutlined />}
                     >
-                      {updateUserList.map((item: UserItemType) => (
-                        <Option key={item.id} value={item.id}>
-                          {item.name}
-                        </Option>
-                      ))}
-                    </Select>
-                  </Col>
-                </Row>
-              </span>
-            </div>
-            <div key="phoneSelect" style={{ margin: '0 0 12px 0' }}>
-              <span style={{ lineHeight: '32px' }}>
-                <Row gutter={8}>
-                  <Col span={4}>
-                    <label>
-                      <span>选择照片</span>
-                    </label>
-                  </Col>
-                  <Col span={18}>
-                    <Upload {...props}>
-                      <Button
-                        onClick={() => {
-                          if (selectedUserId < 0) {
-                            message.error('请选择要上传图片的用户');
-                          }
-                        }}
-                        icon={<UploadOutlined />}
-                      >
-                        上传照片
-                      </Button>
-                    </Upload>
-                  </Col>
-                </Row>
-              </span>
-            </div>
-          </>
-        )}
+                      上传照片
+                    </Button>
+                  </Upload>
+                </Col>
+              </Row>
+            </span>
+          </div>
+        </>
       </Modal>
     </PageContainer>
   );
