@@ -37,9 +37,11 @@ type UserListItem = {
 const UserManage: React.FC = () => {
   const columns: ProColumns<UserListItem>[] = [
     {
-      title: '序号',
+      title: 'ID',
       width: 50,
-      valueType: 'indexBorder',
+      // valueType: 'indexBorder',
+      dataIndex: 'id',
+      key: 'name',
       align: 'center',
     },
     {

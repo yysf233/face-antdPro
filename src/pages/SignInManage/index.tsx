@@ -11,6 +11,7 @@ import { getSignInInfoList, getUserSignInInfo } from '@/services/signIn/api';
 import { useState } from 'react';
 import { DataType } from '@antv/l7-core';
 import moment from 'moment';
+import { set } from 'lodash';
 
 let timeout: any;
 function fetch(value: any, callback: any) {
@@ -42,14 +43,9 @@ const UserManage: React.FC = () => {
   const [data, setData] = useState([]);
   const [dataType, setDataType] = useState('3');
   const [dataObj, setDataObj] = useState({});
+  const [allNumber, setAllNumber] = useState(0);
 
   const columns: ProColumns<UserInfoItem>[] = [
-    {
-      title: '序号',
-      width: 50,
-      valueType: 'indexBorder',
-      align: 'center',
-    },
     {
       title: '姓名',
       dataIndex: 'name',
@@ -283,13 +279,21 @@ const UserManage: React.FC = () => {
                       </label>
                     </Col>
                     <Col span={18}>
-                      <DatePicker
-                        onChange={(value, dataString) => {
-                          const d = new Date(dataString);
-                          const start = d.getTime() - 3600000 * 8;
-                          const end = d.getTime() + 3600000 * 16 - 1;
+                      <RangePicker
+                        // onChange={(value, dataString) => {
+                        //   const d = new Date(dataString);
+                        //   const start = d.getTime() - 3600000 * 8;
+                        //   const end = d.getTime() + 3600000 * 16 - 1;
+                        //   setStartTime(start);
+                        //   setEndTime(end);
+                        // }}
+                        onChange={(data, dataString: any) => {
+                          const start = Date.parse(new Date(dataString[0])) - 3600000 * 8;
+                          const end = Date.parse(new Date(dataString[1])) + 3600000 * 16 - 1;
+                          console.log(start, end);
                           setStartTime(start);
                           setEndTime(end);
+                          actionRef.current?.reload();
                         }}
                       />
                     </Col>
@@ -306,11 +310,14 @@ const UserManage: React.FC = () => {
                       </label>
                     </Col>
                     <Col span={18}>
-                      <DatePicker
+                      <RangePicker
                         onChange={(value, dataString) => {
-                          const date: any = dataString.split(' ~ ');
-                          const f = new Date(date[0]);
-                          const s = new Date(date[1]);
+                          console.log(dataString);
+
+                          const date_start: any = dataString[0].split(' ~ ');
+                          const date_end: any = dataString[1].split(' ~ ');
+                          const f = new Date(date_start[0]);
+                          const s = new Date(date_end[1]);
 
                           const start = f.getTime() - 3600000 * 8;
                           const end = s.getTime() + 3600000 * 16 - 1;
@@ -318,7 +325,6 @@ const UserManage: React.FC = () => {
                           setEndTime(end);
                           console.log(start, end);
                         }}
-                        defaultValue={moment()}
                         format={(value) =>
                           `${moment(value).startOf('week').format(weekFormat)} ~ ${moment(value)
                             .endOf('week')
@@ -340,16 +346,29 @@ const UserManage: React.FC = () => {
                       </label>
                     </Col>
                     <Col span={18}>
-                      <DatePicker
+                      <RangePicker
                         onChange={(value, dataString) => {
                           console.log(dataString);
-                          const str: any = dataString.split('-');
-                          const f = parseInt(str[0]);
-                          const s = parseInt(str[1]);
-                          const number = new Date(f, s, 0).getDate();
-                          const start = new Date(dataString + '-01').getTime() - 3600000 * 8;
+                          let allNumber = 0;
+                          let endNumber = 0;
+                          const str_start: any = dataString[0].split('-');
+                          const str_end: any = dataString[1].split('-');
+                          const start_mouth: any = parseInt(str_start[1]);
+                          const end_month: any = parseInt(str_end[1]);
+                          const start_year: any = parseInt(str_start[0]);
+                          for (let i = 0; i < end_month - start_mouth; i++) {
+                            const number = new Date(start_year, start_mouth + 1 + i, 0).getDate();
+                            endNumber = number;
+                            allNumber = allNumber + number;
+                          }
+                          console.log('allNumber', allNumber);
+
+                          // const f = parseInt(str[0]);
+                          // const s = parseInt(str[1]);
+                          // const number = new Date(f, s, 0).getDate();
+                          const start = new Date(str_start + '-01').getTime();
                           const end =
-                            new Date(dataString + '-' + number).getTime() + 3600000 * 16 - 1;
+                            new Date(str_end + '-' + endNumber).getTime() + 3600000 * 24 - 1;
                           setStartTime(start);
                           setEndTime(end);
                           console.log(start, end);
@@ -377,16 +396,17 @@ const UserManage: React.FC = () => {
                 const res = await getUserSignInInfo(params);
                 console.log(res);
                 if (res.code == 200) {
+                  console.log(res.data);
                   setDataObj(res.data);
                 } else {
                   message.error(res.msg);
                 }
               }}
-              style={{ margin: '0 0 0 100px' }}
+              style={{ margin: '0 0 0 105px' }}
             >
               查询
             </Button>
-            {dataObj.detail ? (
+            {dataObj.detail?.length > 0 ? (
               <Card title="签到信息统计" style={{ width: '400px', margin: '20px 0 0 0' }}>
                 <p>
                   未签到天数： <span style={{ color: '999' }}>{dataObj.zeroDay}</span> 天
@@ -401,23 +421,25 @@ const UserManage: React.FC = () => {
                   最短时长： <span style={{ color: '999' }}>{dataObj.min}</span> 分钟
                 </p>
                 <p>
-                  签到次数： <span style={{ color: '999' }}>{dataObj.detail.length}</span> 分钟
+                  签到次数： <span style={{ color: '999' }}>{dataObj.detail.length}</span> 次
                 </p>
-                <p>
+                {/* <p>
                   总时间：
                   <span style={{ color: '999' }}>
                     {
                       (dataObj.detail.forEach((item, index) => {
                         if (index == 0) {
+                          setAllNumber(item);
                         } else {
-                          dataObj.detail[0] = dataObj.detail[0] + item;
+                          const number: any = allNumber + item;
+                          setAllNumber(number);
                         }
                       }),
-                      dataObj.detail[0])
+                      allNumber)
                     }
                   </span>
                   分钟
-                </p>
+                </p> */}
               </Card>
             ) : (
               ''
