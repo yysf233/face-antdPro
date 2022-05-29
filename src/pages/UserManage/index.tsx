@@ -3,13 +3,13 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import React, { useRef } from 'react';
 import { PageContainer } from '@ant-design/pro-layout';
-import { Row, Col, Button, Modal, Input, Popconfirm, message, Select, Upload } from 'antd';
+import { Row, Col, Button, Modal, Input, Popconfirm, message, Select, Upload, Spin } from 'antd';
 import type { ActionType, ProColumns } from '@ant-design/pro-table';
 import ProTable from '@ant-design/pro-table';
 import { deleteUser, getUsers, regUser, updateUser } from '@/services/user/api';
 import { useState } from 'react';
 import { deletePicById, getPicsById } from '@/services/pics/api';
-import { PlusOutlined, UploadOutlined } from '@ant-design/icons';
+import { UploadOutlined } from '@ant-design/icons';
 
 let timeout: any;
 
@@ -28,6 +28,7 @@ function fetch(value: any, callback: any) {
   }
   timeout = setTimeout(fake, 300);
 }
+
 type UserListItem = {
   id: number;
   name: string;
@@ -36,14 +37,14 @@ type UserListItem = {
 
 const UserManage: React.FC = () => {
   const columns: ProColumns<UserListItem>[] = [
-    {
-      title: 'ID',
-      width: 50,
-      // valueType: 'indexBorder',
-      dataIndex: 'id',
-      key: 'name',
-      align: 'center',
-    },
+    // {
+    //   title: 'ID',
+    //   width: 50,
+    //   // valueType: 'indexBorder',
+    //   dataIndex: 'id',
+    //   key: 'name',
+    //   align: 'center',
+    // },
     {
       title: '姓名',
       dataIndex: 'name',
@@ -82,7 +83,7 @@ const UserManage: React.FC = () => {
             const res = await deleteUser(params);
             if (res.data) {
               message.success(res.msg);
-              actionRefs?.current.reload();
+              actionRefs.current?.reload();
             } else {
               message.error('发生未知错误！');
             }
@@ -100,6 +101,7 @@ const UserManage: React.FC = () => {
   ];
   const expandedRowRender = (expand: any, record: any) => (
     <ProTable
+      rowKey={(record) => record.image}
       request={async () => {
         const obj = {
           id: expand.id,
@@ -109,7 +111,7 @@ const UserManage: React.FC = () => {
           const arr: { image: string }[] = [];
           res.data.map((item: string) => {
             const image = {
-              image: 'http://121.196.237.209:8088/' + item,
+              image: '/api/' + item,
               name: item,
             };
             arr.push(image);
@@ -147,6 +149,7 @@ const UserManage: React.FC = () => {
           render: (text: any, record: any) => [
             // eslint-disable-next-line react/jsx-key
             <Popconfirm
+              key={record.image}
               title="确定要删除此图片吗？"
               onConfirm={async () => {
                 const params = {
@@ -158,13 +161,16 @@ const UserManage: React.FC = () => {
                   actionRef.current?.reload();
                 } else {
                   message.error('发生未知错误！');
+                  actionRef.current?.reload();
                 }
               }}
-              onCancel={() => {}}
+              onCancel={() => {
+                actionRef.current?.reload();
+              }}
               okText="删除"
               cancelText="取消"
             >
-              <Button danger key="delete-user-pic">
+              <Button danger key={record.image}>
                 删除图片
               </Button>
             </Popconfirm>,
@@ -204,13 +210,38 @@ const UserManage: React.FC = () => {
   const [editId, setEditId] = useState(0);
   const [selectedUserId, setSelectedUserId] = useState(-1);
   const [data, setData] = useState([]);
+  const [uploadingState, setUploadingState] = useState(false);
 
   const props = {
     action: `/api/face/reg-face-file/upload?userId=${selectedUserId}`,
     onChange({ file, fileList }: any) {
-      if (file.status == 'done') {
-        message.success('上传成功');
+      console.log(file);
+      if (file.status === 'uploading') {
+        setUploadingState(true);
+        return;
       }
+      if (file.status === 'done') {
+        setUploadingState(false);
+        if (file.response.code === 500) {
+          message.error('上传失败！' + file.response.msg);
+        } else {
+          if (file.response.code === 200) {
+            message.success('上传成功');
+            actionRef.current?.reload();
+          }
+        }
+      } else {
+        actionRef.current?.reload();
+      }
+    },
+    showUploadList: false,
+    beforeUpload: (file: any) => {
+      const isPNG =
+        file.type === 'image/png' || file.type === 'image/jpg' || file.type === 'image/jpeg';
+      if (!isPNG) {
+        message.error(`文件 ${file.name} 不是 PNG/JPG 文件`);
+      }
+      return isPNG || Upload.LIST_IGNORE;
     },
     disabled: selectedUserId < 0 ? true : false,
   };
@@ -277,7 +308,7 @@ const UserManage: React.FC = () => {
           persistenceKey: 'pro-table-singe-demos',
           persistenceType: 'localStorage',
         }}
-        rowKey="id"
+        rowKey={(record) => record.id}
         pagination={{
           pageSize: 10,
         }}
@@ -293,6 +324,10 @@ const UserManage: React.FC = () => {
             name: newName,
             phoneNumber: phoneNumber,
           };
+          if (newName == '' || phoneNumber == '') {
+            message.error('请输入新的用户资料！');
+            return;
+          }
           const res = await updateUser(params);
           if (res.code == 200) {
             message.success(res.msg);
@@ -431,8 +466,8 @@ const UserManage: React.FC = () => {
             key="handleCanleButton"
             onClick={() => {
               setUpdatePictureVisible(false);
-              setSelectedUserId(-1);
-              actionRefs.current?.reload();
+              // setSelectedUserId(-1);
+              actionRef.current?.reload();
             }}
           >
             关闭
@@ -440,10 +475,15 @@ const UserManage: React.FC = () => {
         ]}
         onCancel={() => {
           setUpdatePictureVisible(false);
-          setSelectedUserId(-1);
-          actionRefs.current?.reload();
         }}
       >
+        {uploadingState ? (
+          <div style={{ margin: '10px auto', textAlign: 'center' }}>
+            <Spin tip="上传中..." />
+          </div>
+        ) : (
+          ''
+        )}
         <>
           <div key="phoneNameInput" style={{ margin: '0 0 12px 0' }}>
             <span style={{ lineHeight: '32px' }}>
