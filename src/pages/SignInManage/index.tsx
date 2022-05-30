@@ -446,7 +446,7 @@ const UserManage: React.FC = () => {
                         .toLocaleString()
                         .split('/')[2]
                         .split(' ')[0];
-                      const startMonthTemp: any = new Date(startTimeNew + 3600000 * 24 * 7-1)
+                      const startMonthTemp: any = new Date(startTimeNew + 3600000 * 24 * 7 - 1)
                         .toLocaleString()
                         .split('/')[1];
                       dataSource.push({
